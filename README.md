@@ -58,6 +58,8 @@ There are four workflows in the data portal:
 
 - **workflow_integration_db**: This workflow performs the integration of the data from the previous MySQL database to the current PostgreSQL database. It is important to note that this workflow should be executed only once, as a backup solution. And still has to be tested.
 
+TBD: change the structure of PG db such that they can be merged with our DB. 
+
 
 ---
 
@@ -125,31 +127,47 @@ Now you can start all services:
 docker-compose up -d
 ```
 
-#### 6. Extending the image to include custom packages after initialization of the database
-
-If you want to install python requirements to the airflow container after the initialization of the database, you can do it by:
-
-- adding the requirements to the *requirements.txt* file
-- rebuilding the image docker-compose build by running `docker-compose build --no-cache`, after commenting and uncommenting the respective lines at the beginning of the *docker-compose.yaml* file.
-- restarting the containers by running `docker-compose up -d`
-
-#### 7. Accessing the environment via a browser using the web interface
+#### 6. Accessing the environment via a browser using the web interface
 
 Check http://localhost:8081
 Or http://host.docker.internal:8081
 
+login credentials:
+usr: airflow
+psw: airflow
+
+#### 7. Extending the image to include custom packages after initialization of the database
+
+If you want to install python requirements OR when you open the localhost you see an error like 'DAG Import errors', this is needed to be done. You need to run the python requirements to the airflow container after the initialization of the database. This can be done by:
+
+- adding the requirements to the *requirements.txt* file
+- rebuilding the image docker-compose build by running `docker-compose build --no-cache`, after commenting and uncommenting the respective lines at the beginning of the *docker-compose.yaml* file. (go onto docker compose, comment the line image etc.. (line 53) and decomment line build (line 54))
+- restarting the containers by running `docker-compose up -d`
+
+#### FIRST RUN #####
+Most of these commands below are for running it for the first time, or when it breaks.
 #### 8. Airflow connection and Postgres Operator
 
 In Airflow/Admin/Connections
-
-- Conncection ID: `postgres_default`
+- go on + -> add a new record
+- Connection ID: `postgres_default`
 - Connection type: `postgres`
-- Host: `postgres` # or `host.docker.internal`
+- Host: `postgres` 
 - Schema: `luxmobi`
 - Login: `nipi`
 - Password: `MobiLab1`
 - Port: `5432`
 
+#### 8.2. workflow_ETL.py change
+
+put create_tables in green, check if it is working (it should work properly).
+
+#### 8.1. workflow_ETL.py change
+for the first time you're running the service, PLEASE ensure that you change the start date on the actual date you're doing this. (Line 45 of workflow_ETL.py, UTC date)
+
+TBD: check on workflow_ETL.py a way to avoid this. Remember that this code runs is checking on the file, so the start date should be on the install date, BUT it should stay the install date without changing at every call.
+
+Then go to airflow again, open workflow_ETL and run 
 
 #### 9. If there are some problems starting postgres:
 
@@ -157,6 +175,14 @@ In Airflow/Admin/Connections
 docker exec -it luxmobi-postgres-1 psql -U nipi -d luxmobi -c "CREATE ROLE airflow LOGIN PASSWORD 'airflow';"
 docker exec -it luxmobi-postgres-1 psql -U nipi -d luxmobi -c "CREATE DATABASE airflow;"
 ```
+
+#### IF EVERYTHING GOES DOWNHILL SUPERFAST ####
+- you don't see the workflow
+- DAG is not in the bag
+- errors that exist there
+
+
+Only solution is removing everything and reinstalling everything again.
 
 #### 10. Reseting Docker to start again
 
@@ -166,13 +192,23 @@ In case you need to reinstall everything again, you just need to run:
 docker-compose down --volumes --rmi all
 ```
 
-Or, if you want to prune everything:
+Or, if you want to prune everything: (maybe twice or 3 times...)
 
 ```
 docker system prune -a
 ```
 
-And then start again...
+Then go to docker, remove EVERYTHING in container, images, volumes. 
+
+Then you go to dags/data AND SAVE THE DATA YOU STORED.
+
+Remove also luxmobi folder from the computer and restart the pc.
+
+And then start again from 1.
+
+Then, when you finish again, take back the data you SAVED BEFORE and copy them in dags/data. So the system will think that nothing happened.
+
+If this happens, you need to trigger the emergency botton (read -> workflow_load_csv_data in airflow)
 
 #### 11. In case the DAGS are not visible in the webserver
 
@@ -216,6 +252,8 @@ docker logs -f <container_name>
 ```
 docker exec -it luxmobi-airflow-webserver-1 airflow dags list
 ```
+
+#### 13. IN CASE EVER
 
 
 #### More info
